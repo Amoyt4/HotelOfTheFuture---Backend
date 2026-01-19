@@ -16,6 +16,7 @@ type Env struct {
 	DB_PASSWORD string `env:"DB_PASSWORD"`
 	IP_ADDRESS  string `env:"IP_ADDRESS"`
 	API_PORT    string `env:"API_PORT"`
+	JWT_SECRET  string `env:"JWT_SECRET"`
 }
 
 type Config struct {

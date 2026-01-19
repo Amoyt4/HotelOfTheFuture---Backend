@@ -21,7 +21,7 @@ func GetAllEmployees(ctx context.Context, db *pgxpool.Pool) ([]entity.Employee, 
 		var employee entity.Employee
 		err := rows.Scan(
 			&employee.ID,
-			&employee.Name,
+			&employee.Login,
 			&employee.Password,
 			&employee.Name)
 		if err != nil {

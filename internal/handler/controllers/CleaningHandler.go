@@ -45,7 +45,7 @@ func PostNewCleaningHandler(ctx context.Context, db *pgxpool.Pool) http.HandlerF
 		}
 		defer r.Body.Close()
 
-		//проверю что поля прошли не пустыми
+		//проверю что поля пришли не пустыми
 		if cleaning.RoomNum == 0 || cleaning.StartTime.IsZero() || cleaning.EndTime.IsZero() {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("все поля должны быть заполнены"))

@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"diplom_back/config"
-	"diplom_back/internal/auth"
 	"diplom_back/internal/handler/controllers"
 	"diplom_back/internal/handler/controllers/storeHandler"
 	"fmt"
@@ -17,34 +16,30 @@ func Setup(cfg *config.Config, ctx context.Context) http.Handler {
 	muxR := mux.NewRouter()
 	db := cfg.Client
 
-	// ✅ CORS на весь роутер
 	muxR.Use(corsMiddleware)
-
-	// ✅ Логи на весь роутер
 	muxR.Use(loggingMiddleware)
 
-	// ✅ catch-all для preflight OPTIONS (иначе mux может отдать 404/405)
 	muxR.PathPrefix("/").Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
 	// Auth
-	muxR.HandleFunc("/api/login", controllers.LoginHandler(ctx, db)).Methods("POST")
+	muxR.HandleFunc("/api/login", controllers.LoginHandler).Methods("POST")
 
 	// Cleaning
-	muxR.HandleFunc(GetAllCleaning, auth.RequireAuth(controllers.GetAllCleaningHandler(ctx, db))).Methods("GET")
-	muxR.HandleFunc(DeleteCleaningById, auth.RequireAuth(controllers.DeleteCleaningByIdHandler(ctx, db))).Methods("DELETE")
+	muxR.HandleFunc(GetAllCleaning, controllers.GetAllCleaningHandler(ctx, db)).Methods("GET")
+	muxR.HandleFunc(DeleteCleaningById, controllers.DeleteCleaningByIdHandler(ctx, db)).Methods("DELETE")
 	muxR.HandleFunc(PostNewCleaning, controllers.PostNewCleaningHandler(ctx, db)).Methods("POST")
 
 	// Employee
-	muxR.HandleFunc(GetAllEmployee, auth.RequireAuth(controllers.GetAllEmployeeHandler(ctx, db))).Methods("GET")
-	muxR.HandleFunc(DeleteEmployeeById, auth.RequireAuth(controllers.DeleteEmployeeByIdHandler(ctx, db))).Methods("DELETE")
-	muxR.HandleFunc(PostNewEmployee, auth.RequireAuth(controllers.PostNewEmployeeHandler(ctx, db))).Methods("POST")
+	muxR.HandleFunc(GetAllEmployee, controllers.GetAllEmployeeHandler(ctx, db)).Methods("GET")
+	muxR.HandleFunc(DeleteEmployeeById, controllers.DeleteEmployeeByIdHandler(ctx, db)).Methods("DELETE")
+	muxR.HandleFunc(PostNewEmployee, controllers.PostNewEmployeeHandler(ctx, db)).Methods("POST")
 
 	// Contact Employee
-	muxR.HandleFunc(GetAllEmployeeContacts, auth.RequireAuth(controllers.GetAllEmployeeContactsHandler(ctx, db))).Methods("GET")
+	muxR.HandleFunc(GetAllEmployeeContacts, controllers.GetAllEmployeeContactsHandler(ctx, db)).Methods("GET")
 	muxR.HandleFunc(PostNewEmployeeContacts, controllers.PostNewEmployeeContactsHandler(ctx, db)).Methods("POST")
-	muxR.HandleFunc(DeleteEmployeeContactsById, auth.RequireAuth(controllers.DeleteEmployeeContactsByIdHandler(ctx, db))).Methods("DELETE")
+	muxR.HandleFunc(DeleteEmployeeContactsById, controllers.DeleteEmployeeContactsByIdHandler(ctx, db)).Methods("DELETE")
 
 	// STORE - Dishes
 	muxR.HandleFunc(GetAllDishes, storeHandler.GetAllDishesHandler(ctx, db)).Methods("GET")
@@ -58,21 +53,16 @@ func Setup(cfg *config.Config, ctx context.Context) http.Handler {
 	muxR.HandleFunc(DeleteOrder, storeHandler.DeleteOrderHandler(ctx, db)).Methods("DELETE")
 
 	// STORE - OrderItem
-	muxR.HandleFunc(GetOrderItems, storeHandler.GetOrderItemsByOrderIDHandler(ctx, db)).Methods("GET")
+	muxR.HandleFunc(GetOrderItems, storeHandler.GetOrderItemsByOrderIDHandler(ctx, db)).Methods("POST")
 	muxR.HandleFunc(UpdateOrderItem, storeHandler.UpdateOrderItemQuantityHandler(ctx, db)).Methods("PUT")
 	muxR.HandleFunc(DeleteOrderItem, storeHandler.DeleteOrderItemHandler(ctx, db)).Methods("DELETE")
 
 	return muxR
 }
 
-// ========================
-// Middlewares
-// ========================
-
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		// не логируем OPTIONS (preflight)
 		if r.Method == http.MethodOptions {
 			next.ServeHTTP(w, r)
 			return
@@ -95,8 +85,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 		origin := r.Header.Get("Origin")
 
 		allowed := map[string]bool{
-			"http://localhost:5173":  true, // Vite
-			"http://localhost:63342": true, // WebStorm preview (если нужно)
+			"http://localhost:5173": true,
 		}
 
 		if allowed[origin] {
@@ -108,10 +97,6 @@ func corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.Header().Set("Access-Control-Max-Age", "86400")
 
-		// Если не используешь cookies/sessions — credentials не нужно
-		// w.Header().Set("Access-Control-Allow-Credentials", "true")
-
-		// ✅ preflight
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
